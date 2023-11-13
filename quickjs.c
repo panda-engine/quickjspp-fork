@@ -254,6 +254,7 @@ struct JSRuntime {
     int atom_free_index; /* 0 = none */
 
     int class_count;    /* size of class_array */
+    /*panda add*/int class_len;      /* number of classes */
     JSClass *class_array;
 
     struct list_head context_list; /* list of JSContext.link */
@@ -1670,6 +1671,9 @@ JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque)
     }
     rt->malloc_state = ms;
     rt->malloc_gc_threshold = 256 * 1024;
+
+    // panda add
+    rt->class_len = JS_CLASS_INIT_COUNT;
 
 #ifdef CONFIG_BIGNUM
     bf_context_init(&rt->bf_ctx, js_bf_realloc, rt);
@@ -3529,7 +3533,7 @@ static int JS_NewClass1(JSRuntime *rt, JSClassID class_id,
     return 0;
 }
 
-int JS_NewClass(JSRuntime *rt, JSClassID class_id, const JSClassDef *class_def)
+int JS_NewClass(JSRuntime *rt, JSClassID *class_id, const JSClassDef *class_def)
 {
     int ret, len;
     JSAtom name;
@@ -3541,7 +3545,10 @@ int JS_NewClass(JSRuntime *rt, JSClassID class_id, const JSClassDef *class_def)
         if (name == JS_ATOM_NULL)
             return -1;
     }
-    ret = JS_NewClass1(rt, class_id, class_def, name);
+    *class_id = rt->class_len;
+    ret = JS_NewClass1(rt, rt->class_len, class_def, name);
+    if (ret == 0)
+        ++rt->class_len;
     JS_FreeAtomRT(rt, name);
     return ret;
 }
@@ -28736,6 +28743,81 @@ static JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
     m->evaluated = TRUE;
     return ret_val;
 }
+
+// panda add
+static JSValue js_evaluate_module_and_notfree(JSContext *ctx, JSModuleDef *m)
+{
+    JSModuleDef *m1;
+    int i;
+    JSValue ret_val;
+
+    if (m->eval_mark)
+        return JS_UNDEFINED; /* avoid cycles */
+
+    if (m->evaluated) {
+        /* if the module was already evaluated, rethrow the exception
+           it raised */
+        if (m->eval_has_exception) {
+            return JS_Throw(ctx, JS_DupValue(ctx, m->eval_exception));
+        } else {
+            return JS_UNDEFINED;
+        }
+    }
+
+    m->eval_mark = TRUE;
+
+    for(i = 0; i < m->req_module_entries_count; i++) {
+        JSReqModuleEntry *rme = &m->req_module_entries[i];
+        m1 = rme->module;
+        if (!m1->eval_mark) {
+            ret_val = js_evaluate_module(ctx, m1);
+            if (JS_IsException(ret_val)) {
+                m->eval_mark = FALSE;
+                return ret_val;
+            }
+            JS_FreeValue(ctx, ret_val);
+        }
+    }
+
+    if (m->init_func) {
+        /* C module init */
+        if (m->init_func(ctx, m) < 0)
+            ret_val = JS_EXCEPTION;
+        else
+            ret_val = JS_UNDEFINED;
+    } else {
+        ret_val = JS_Call(ctx, m->func_obj, JS_UNDEFINED, 0, NULL);
+        // m->func_obj = JS_UNDEFINED;
+    }
+    if (JS_IsException(ret_val)) {
+        /* save the thrown exception value */
+        m->eval_has_exception = TRUE;
+        m->eval_exception = JS_DupValue(ctx, ctx->rt->current_exception);
+    }
+    m->eval_mark = FALSE;
+    // m->evaluated = TRUE;
+    return ret_val;
+}
+
+JSValue JS_Eval_ObjModule(JSContext *ctx, JSValueConst obj){
+    JSModuleDef *m;
+    JSValue ret_val;
+    m = JS_VALUE_GET_PTR(obj);
+    /* the module refcount should be >= 2 */
+    // JS_FreeValue(ctx, obj);
+    if (js_create_module_function(ctx, m) < 0)
+        goto fail;
+    if (js_link_module(ctx, m) < 0)
+        goto fail;
+    ret_val = js_evaluate_module_and_notfree(ctx, m);
+    if (JS_IsException(ret_val)) {
+    fail:
+        js_free_modules(ctx, JS_FREE_MODULE_NOT_EVALUATED);
+        return JS_EXCEPTION;
+    }
+    return ret_val;
+}
+// panda end
 
 static __exception JSAtom js_parse_from_clause(JSParseState *s)
 {

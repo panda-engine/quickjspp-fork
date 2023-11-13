@@ -25,6 +25,10 @@
 #ifndef CUTILS_H
 #define CUTILS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
@@ -382,5 +386,9 @@ static inline int from_hex(int c)
 void rqsort(void *base, size_t nmemb, size_t size,
             int (*cmp)(const void *, const void *, void *),
             void *arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* CUTILS_H */

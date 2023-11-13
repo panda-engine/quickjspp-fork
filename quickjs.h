@@ -640,7 +640,7 @@ typedef struct JSClassDef {
 } JSClassDef;
 
 JSClassID JS_NewClassID(JSClassID *pclass_id);
-int JS_NewClass(JSRuntime *rt, JSClassID class_id, const JSClassDef *class_def);
+int JS_NewClass(JSRuntime *rt, JSClassID *class_id, const JSClassDef *class_def);
 int JS_IsRegisteredClass(JSRuntime *rt, JSClassID class_id);
 
 /* value handling */
@@ -948,7 +948,9 @@ JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
                 const char *filename, int eval_flags);
 JSValue JS_Eval2(JSContext *ctx, const char *input, size_t input_len,
                 const char *filename, int eval_flags, int line_no);
-
+// panda add
+JSValue JS_Eval_ObjModule(JSContext *ctx, JSValueConst obj);
+// panda end
 JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
 /* same as JS_Eval() but with an explicit 'this_obj' parameter */
 JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,
@@ -976,6 +978,8 @@ JSClassID JS_GetClassID(JSValueConst obj, void** ppopaque);
 /* 'buf' must be zero terminated i.e. buf[buf_len] = '\0'. */
 JSValue JS_ParseJSON(JSContext *ctx, const char *buf, size_t buf_len,
                      const char *filename);
+/*panda add*/ JSValue JS_ParseJSON1(JSContext *ctx, const char *json_str, 
+                        size_t json_len);
 #define JS_PARSE_JSON_EXT (1 << 0) /* allow extended JSON */
 JSValue JS_ParseJSON2(JSContext *ctx, const char *buf, size_t buf_len,
                       const char *filename, int flags);
