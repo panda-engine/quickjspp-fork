@@ -43,6 +43,7 @@
   #include <sys/stat.h>
   #include <sys/utime.h>
   #include "win/dirent.h"
+  #include <direct.h>
   #ifndef PATH_MAX
     #define PATH_MAX MAX_PATH
   #endif
@@ -1545,9 +1546,9 @@ static int js_std_init(JSContext *ctx, JSModuleDef *m)
     
     /* FILE class */
     /* the class ID is created once */
-    JS_NewClassID(&js_std_file_class_id);
+    // JS_NewClassID(&js_std_file_class_id);
     /* the class is created once per runtime */
-    JS_NewClass(JS_GetRuntime(ctx), js_std_file_class_id, &js_std_file_class);
+    JS_NewClass(JS_GetRuntime(ctx), &js_std_file_class_id, &js_std_file_class);
     proto = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, proto, js_std_file_proto_funcs,
                                countof(js_std_file_proto_funcs));
@@ -3700,8 +3701,8 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
     os_poll_func = js_os_poll;
     
     /* OSTimer class */
-    JS_NewClassID(&js_os_timer_class_id);
-    JS_NewClass(JS_GetRuntime(ctx), js_os_timer_class_id, &js_os_timer_class);
+    // JS_NewClassID(&js_os_timer_class_id);
+    JS_NewClass(JS_GetRuntime(ctx), &js_os_timer_class_id, &js_os_timer_class);
 
 #ifdef USE_WORKER
     {

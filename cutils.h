@@ -327,6 +327,14 @@ static inline uint64_t bswap64(uint64_t v)
 /* XXX: should take an extra argument to pass slack information to the caller */
 typedef void *DynBufReallocFunc(void *opaque, void *ptr, size_t size);
 
+struct timezone {
+    int tz_minuteswest;
+    int tz_dsttime;
+};
+
+#ifdef _MSC_VER
+int gettimeofday(struct timeval * tp, struct timezone * tzp);
+#endif
 typedef struct DynBuf {
     uint8_t *buf;
     size_t size;
