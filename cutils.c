@@ -50,6 +50,17 @@ int gettimeofday(struct timeval * tp, struct timezone * tzp)
 
   return 0;
 }
+
+int _gettimeofday(struct timespec * tp, struct timezone * tzp){
+    struct timeval now;
+    int rv = gettimeofday(&now, NULL);
+    if (rv)
+        return rv;
+    tp->tv_sec = now.tv_sec;
+    tp->tv_nsec = now.tv_usec * 1000;
+    return 0;
+}
+
 #endif
 
 

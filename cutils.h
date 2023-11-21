@@ -34,6 +34,7 @@ extern "C" {
 #include <string.h>
 
 #ifdef _MSC_VER
+  #include <time.h>
   #include <windows.h>
   #include <intrin.h>
   #ifndef alloca
@@ -334,6 +335,7 @@ struct timezone {
 
 #ifdef _MSC_VER
 int gettimeofday(struct timeval * tp, struct timezone * tzp);
+int _gettimeofday(struct timespec * tp, struct timezone * tzp);
 #endif
 typedef struct DynBuf {
     uint8_t *buf;

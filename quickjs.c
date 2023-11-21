@@ -54445,7 +54445,11 @@ static JSValue js_atomics_wait(JSContext *ctx,
         ret = 0;
     } else {
         /* XXX: use clock monotonic */
+#if defined(__linux__) || defined(__APPLE__)
         clock_gettime(CLOCK_REALTIME, &ts);
+#else
+        _gettimeofday(&ts, NULL);
+#endif
         ts.tv_sec += timeout / 1000;
         ts.tv_nsec += (timeout % 1000) * 1000000;
         if (ts.tv_nsec >= 1000000000) {
