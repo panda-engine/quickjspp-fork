@@ -948,9 +948,6 @@ JSValue JS_Eval(JSContext *ctx, const char *input, size_t input_len,
                 const char *filename, int eval_flags);
 JSValue JS_Eval2(JSContext *ctx, const char *input, size_t input_len,
                 const char *filename, int eval_flags, int line_no);
-// panda add
-JSValue JS_Eval_ObjModule(JSContext *ctx, JSValueConst obj);
-// panda end
 JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
 /* same as JS_Eval() but with an explicit 'this_obj' parameter */
 JSValue JS_EvalThis(JSContext *ctx, JSValueConst this_obj,

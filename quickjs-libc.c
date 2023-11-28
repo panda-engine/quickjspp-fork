@@ -68,9 +68,10 @@ typedef sig_t sighandler_t;
 
 #endif
 
-#if !defined(_WIN32)
-/* enable the os.Worker API. IT relies on POSIX threads */
 #define USE_WORKER
+#if defined(_WIN32)
+/* enable the os.Worker API. IT relies on POSIX threads */
+#define pipe(fds) _pipe(fds, 4096, _O_TEXT)
 #endif
 
 #ifdef USE_WORKER
@@ -3710,8 +3711,7 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
         JSThreadState *ts = JS_GetRuntimeOpaque(rt);
         JSValue proto, obj;
         /* Worker class */
-        JS_NewClassID(&js_worker_class_id);
-        JS_NewClass(JS_GetRuntime(ctx), js_worker_class_id, &js_worker_class);
+        JS_NewClass(JS_GetRuntime(ctx), &js_worker_class_id, &js_worker_class);
         proto = JS_NewObject(ctx);
         JS_SetPropertyFunctionList(ctx, proto, js_worker_proto_funcs, countof(js_worker_proto_funcs));
         
