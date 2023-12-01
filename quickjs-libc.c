@@ -68,16 +68,13 @@ typedef sig_t sighandler_t;
 
 #endif
 
-#define USE_WORKER
-#if defined(_WIN32)
+#if defined(_WIN32) || defined (_WIN64)
 /* enable the os.Worker API. IT relies on POSIX threads */
 #define pipe(fds) _pipe(fds, 4096, _O_TEXT)
 #endif
 
-#ifdef USE_WORKER
 #include <pthread.h>
 #include <stdatomic.h>
-#endif
 
 #include "cutils.h"
 #include "list.h"
@@ -117,9 +114,7 @@ typedef struct {
 
 typedef struct {
     int ref_count;
-#ifdef USE_WORKER
     pthread_mutex_t mutex;
-#endif
     struct list_head msg_queue; /* list of JSWorkerMessage.link */
     int read_fd;
     int write_fd;
@@ -2164,8 +2159,6 @@ static int js_os_poll(JSContext *ctx)
 }
 #else
 
-#ifdef USE_WORKER
-
 static void js_free_message(JSWorkerMessage *msg);
 
 /* return 1 if a message was handled, 0 if no message */
@@ -2233,13 +2226,6 @@ static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
     }
     return ret;
 }
-#else
-static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
-                                 JSWorkerMessageHandler *port)
-{
-    return 0;
-}
-#endif
 
 static int js_os_poll(JSContext *ctx)
 {
@@ -3158,10 +3144,8 @@ static JSValue js_os_dup2(JSContext *ctx, JSValueConst this_val,
 
 #endif /* !_WIN32 */
 
-#ifdef USE_WORKER
 
 /* Worker */
-
 typedef struct {
     JSWorkerMessagePipe *recv_pipe;
     JSWorkerMessagePipe *send_pipe;
@@ -3594,13 +3578,10 @@ static const JSCFunctionListEntry js_worker_proto_funcs[] = {
     JS_CGETSET_DEF("onmessage", js_worker_get_onmessage, js_worker_set_onmessage ),
 };
 
-#endif /* USE_WORKER */
 
 void js_std_set_worker_new_context_func(JSContext *(*func)(JSRuntime *rt))
 {
-#ifdef USE_WORKER
     js_worker_new_context_func = func;
-#endif
 }
 
 #if defined(_WIN32)
@@ -3705,7 +3686,6 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
     // JS_NewClassID(&js_os_timer_class_id);
     JS_NewClass(JS_GetRuntime(ctx), &js_os_timer_class_id, &js_os_timer_class);
 
-#ifdef USE_WORKER
     {
         JSRuntime *rt = JS_GetRuntime(ctx);
         JSThreadState *ts = JS_GetRuntimeOpaque(rt);
@@ -3730,7 +3710,6 @@ static int js_os_init(JSContext *ctx, JSModuleDef *m)
         
         JS_SetModuleExport(ctx, m, "Worker", obj);
     }
-#endif /* USE_WORKER */
 
     return JS_SetModuleExportList(ctx, m, js_os_funcs,
                                   countof(js_os_funcs));
@@ -3743,9 +3722,7 @@ JSModuleDef *js_init_module_os(JSContext *ctx, const char *module_name)
     if (!m)
         return NULL;
     JS_AddModuleExportList(ctx, m, js_os_funcs, countof(js_os_funcs));
-#ifdef USE_WORKER
     JS_AddModuleExport(ctx, m, "Worker");
-#endif
     return m;
 }
 
@@ -3818,7 +3795,6 @@ void js_std_init_handlers(JSRuntime *rt)
 
     JS_SetRuntimeOpaque(rt, ts);
 
-#ifdef USE_WORKER
     /* set the SharedArrayBuffer memory handlers */
     {
         JSSharedArrayBufferFunctions sf;
@@ -3828,7 +3804,6 @@ void js_std_init_handlers(JSRuntime *rt)
         sf.sab_dup = js_sab_dup;
         JS_SetSharedArrayBufferFunctions(rt, &sf);
     }
-#endif
 }
 
 void js_std_free_handlers(JSRuntime *rt)
@@ -3853,11 +3828,9 @@ void js_std_free_handlers(JSRuntime *rt)
             free_timer(rt, th);
     }
 
-#ifdef USE_WORKER
     /* XXX: free port_list ? */
     js_free_message_pipe(ts->recv_pipe);
     js_free_message_pipe(ts->send_pipe);
-#endif
 
     free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
